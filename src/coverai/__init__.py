@@ -1,0 +1,2 @@
+"""CoverAI application package."""
+

@@ -1,0 +1,69 @@
+[project]
+name = "coverai"
+version = "0.1.0"
+description = "Telegram bot for generating cover letters from hh.ru vacancies."
+requires-python = ">=3.12"
+dependencies = [
+    "aiogram>=3.0,<4",
+    "aiohttp-socks>=0.10,<1",
+    "alembic>=1.13,<2",
+    "arq>=0.26,<1",
+    "asyncpg>=0.29,<1",
+    "dishka>=1.10.1",
+    "fastapi>=0.136.1",
+    "httpx>=0.27,<1",
+    "prometheus-client>=0.20,<1",
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.2,<3",
+    "pyjwt>=2.12.1",
+    "pymupdf>=1.24,<2",
+    "python-docx>=1.1,<2",
+    "python-multipart>=0.0.27",
+    "redis>=5,<7",
+    "sqlalchemy[asyncio]>=2.0,<3",
+    "structlog>=24,<27",
+    "uvicorn[standard]>=0.46.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.20,<1",
+    "factory-boy>=3.3.3",
+    "mypy>=1.10,<2",
+    "pytest>=8.2,<9",
+    "pytest-asyncio>=0.23,<2",
+    "pytest-cov>=7.1.0",
+    "pytest-factoryboy>=2.8.1",
+    "respx>=0.23.1",
+    "ruff>=0.5,<1",
+    "testcontainers>=4.14.2",
+    "time-machine>=3.2.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/coverai"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src", "tests"]
+testpaths = ["tests"]
