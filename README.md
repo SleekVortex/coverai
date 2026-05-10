@@ -245,4 +245,4 @@ CI выполняет те же проверки в `.github/workflows/ci.yml`.
 - [`docs/cover-letter-bot-architecture.md`](docs/cover-letter-bot-architecture.md)
   - архитектурные заметки по боту.
 - [`docs/bdd-specification.md`](docs/bdd-specification.md) - документированная
-  BDD-спецификация; executable BDD tests в проекте больше не используются.
+  BDD-спецификация].
