@@ -19,7 +19,7 @@
       "id": 1,
       "targets": [
         {
-          "expr": "sum by (status, plan) (rate(coverai_generation_requests_total[5m]))",
+          "expr": "sum by (status, plan) (rate(coverai_generation_requests_total{job=~\"api|bot|worker\"}[5m]))",
           "refId": "A"
         }
       ],
@@ -41,7 +41,7 @@
       "id": 2,
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(coverai_generation_latency_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(coverai_generation_latency_seconds_bucket{job=~\"api|bot|worker\"}[5m])))",
           "refId": "A"
         }
       ],
@@ -63,7 +63,7 @@
       "id": 3,
       "targets": [
         {
-          "expr": "coverai_quota_usage",
+          "expr": "sum by (plan) (coverai_quota_usage{job=~\"api|bot|worker\"})",
           "refId": "A"
         }
       ],
@@ -85,7 +85,7 @@
       "id": 4,
       "targets": [
         {
-          "expr": "coverai_arq_queue_size",
+          "expr": "sum by (queue) (coverai_arq_queue_size{job=~\"api|bot|worker\"})",
           "refId": "A"
         }
       ],
@@ -129,7 +129,7 @@
       "id": 6,
       "targets": [
         {
-          "expr": "sum by (provider, model, status) (rate(coverai_llm_requests_total[5m]))",
+          "expr": "sum by (provider, model, status) (rate(coverai_llm_requests_total{job=~\"api|bot|worker\", provider!=\"unknown\"}[5m]))",
           "refId": "A"
         }
       ],
@@ -151,7 +151,7 @@
       "id": 7,
       "targets": [
         {
-          "expr": "sum by (provider, model, currency) (increase(coverai_llm_cost_total[24h]))",
+          "expr": "sum by (provider, model, currency) (increase(coverai_llm_cost_total{job=~\"api|bot|worker\", provider!=\"unknown\"}[24h]))",
           "refId": "A"
         }
       ],
@@ -173,7 +173,7 @@
       "id": 8,
       "targets": [
         {
-          "expr": "sum by (kind, status) (rate(coverai_payments_total[5m]))",
+          "expr": "sum by (kind, status) (rate(coverai_payments_total{job=~\"api|bot|worker\"}[5m]))",
           "refId": "A"
         }
       ],
@@ -195,7 +195,7 @@
       "id": 9,
       "targets": [
         {
-          "expr": "sum by (kind, currency) (increase(coverai_revenue_total[30d]))",
+          "expr": "sum by (kind, currency) (increase(coverai_revenue_total{job=~\"api|bot|worker\"}[30d]))",
           "refId": "A"
         }
       ],
@@ -217,7 +217,7 @@
       "id": 10,
       "targets": [
         {
-          "expr": "coverai_active_subscriptions",
+          "expr": "sum by (plan) (coverai_active_subscriptions{job=~\"api|bot|worker\"})",
           "refId": "A"
         }
       ],
@@ -239,7 +239,7 @@
       "id": 11,
       "targets": [
         {
-          "expr": "sum by (action) (increase(coverai_credits_total[30d]))",
+          "expr": "sum by (action) (increase(coverai_credits_total{job=~\"api|bot|worker\"}[30d]))",
           "refId": "A"
         }
       ],

@@ -227,6 +227,23 @@ docker compose up --build
 - Prometheus: `http://localhost:9090`
 - Grafana: `http://localhost:3000`
 
+## Demo materials
+
+Демо-артефакты лежат в [`docs/demo`](docs/demo):
+
+- [`coverai-demo.mov`](docs/demo/coverai-demo.mov) - запись основного
+  пользовательского сценария.
+- [`api-swagger-docs.jpg`](docs/demo/api-swagger-docs.jpg) - Swagger UI с
+  группами REST API endpoints.
+- [`grafana-system-metrics-dashboard.jpg`](docs/demo/grafana-system-metrics-dashboard.jpg)
+  - верх Grafana-дэшборда: генерации, latency, квоты, очередь, healthcheck и
+  LLM requests.
+- [`grafana-business-metrics-dashboard.jpg`](docs/demo/grafana-business-metrics-dashboard.jpg)
+  - нижняя часть Grafana-дэшборда: LLM cost, payments, revenue, active
+  subscriptions и credits.
+- [`docker-compose-graph.png`](docs/demo/docker-compose-graph.png) - схема
+  Docker Compose сервисов и зависимостей.
+
 ## Локальные проверки
 
 ```bash
