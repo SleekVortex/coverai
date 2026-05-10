@@ -1,6 +1,7 @@
-from coverai.domain.entities import Employer, GenerationRequest, Vacancy
+from coverai.domain.entities import Employer, GenerationRequest, User, Vacancy
 from coverai.domain.enums import GenerationStatus, Plan, Tone
 from coverai.domain.generation_job_queue import GenerationJobQueue
+from coverai.domain.ids import required_id
 from coverai.domain.ports import (
     GenerationRequestRepo,
     ResumeProfileRepo,
@@ -51,6 +52,34 @@ class GenerationQueueService:
         if user is None:
             raise UserNotFoundError
 
+        return await self._enqueue_generation_for_existing_user(
+            user=user,
+            user_id=user_id,
+            vacancy_url=vacancy_url,
+            tone=tone,
+        )
+
+    async def enqueue_generation_for_user(
+        self,
+        user: User,
+        vacancy_url: str,
+        tone: Tone,
+    ) -> GenerationRequest:
+        """Ставит генерацию пользователя в очередь."""
+        return await self._enqueue_generation_for_existing_user(
+            user=user,
+            user_id=required_id(user),
+            vacancy_url=vacancy_url,
+            tone=tone,
+        )
+
+    async def _enqueue_generation_for_existing_user(
+        self,
+        user: User,
+        user_id: int,
+        vacancy_url: str,
+        tone: Tone,
+    ) -> GenerationRequest:
         profile = await self._profile_repo.get_by_user_id(user_id)
         if profile is None:
             raise ProfileNotFoundError
@@ -66,8 +95,8 @@ class GenerationQueueService:
         request = await self._generation_request_repo.create(
             GenerationRequest(
                 user_id=user_id,
-                profile_id=_required_id(profile),
-                vacancy_id=_required_id(vacancy),
+                profile_id=required_id(profile),
+                vacancy_id=required_id(vacancy),
                 status=GenerationStatus.PENDING,
                 tone=tone,
                 snapshot_profile_text=profile.resume_text,
@@ -80,7 +109,7 @@ class GenerationQueueService:
             vacancy_url=vacancy_url,
             tone=tone,
             cost_credits=self._cost_credits,
-            generation_request_id=_required_id(request),
+            generation_request_id=required_id(request),
         )
         return request
 
@@ -118,19 +147,12 @@ class GenerationQueueService:
         return await self._vacancy_repo.create_vacancy(
             Vacancy(
                 hh_id=hh_id,
-                employer_id=_required_id(employer),
+                employer_id=required_id(employer),
                 title=_GENERATION_QUEUE_CONFIG.placeholder_vacancy_title,
                 url=vacancy_url,
                 cached_at=None,
             ),
         )
-
-
-def _required_id(entity: object) -> int:
-    entity_id = getattr(entity, "id", None)
-    if not isinstance(entity_id, int):
-        raise RuntimeError("entity id is not assigned")
-    return entity_id
 
 
 def _allowed_tones(plan: Plan) -> set[Tone]:

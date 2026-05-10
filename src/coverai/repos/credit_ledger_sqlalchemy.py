@@ -12,6 +12,27 @@ class CreditLedgerSqlAlchemyRepo:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
+    async def record_transaction(
+        self,
+        transaction: CreditTransaction,
+    ) -> CreditTransaction:
+        """Записывает транзакцию кредитов."""
+        row = models.CreditTransaction(
+            user_id=transaction.user_id,
+            type=transaction.type.value,
+            amount=transaction.amount,
+            balance_after=transaction.balance_after,
+            description=transaction.description,
+            generation_request_id=transaction.generation_request_id,
+            payment_intent_id=transaction.payment_intent_id,
+            promo_code_id=transaction.promo_code_id,
+            metadata_json=transaction.metadata_json,
+        )
+        self._session.add(row)
+        await self._session.flush()
+        await self._session.refresh(row)
+        return credit_transaction_from_model(row)
+
     async def grant_welcome_bonus(
         self,
         user_id: int,

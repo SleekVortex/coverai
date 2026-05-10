@@ -4,8 +4,9 @@ from coverai.domain.enums import Tone
 
 
 class ArqGenerationJobQueue:
-    def __init__(self, arq_pool: Any) -> None:
+    def __init__(self, arq_pool: Any, notify_telegram: bool = False) -> None:
         self._arq_pool = arq_pool
+        self._notify_telegram = notify_telegram
 
     async def enqueue_generate_cover_letter(
         self,
@@ -21,7 +22,7 @@ class ArqGenerationJobQueue:
             user_id,
             vacancy_url,
             tone.value,
-            False,
+            self._notify_telegram,
             True,
             cost_credits,
             generation_request_id,

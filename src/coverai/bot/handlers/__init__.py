@@ -24,7 +24,6 @@ from coverai.bot.handlers.text import (
     save_resume_from_text,
 )
 from coverai.bot.handlers.tone_callback import handle_tone_callback
-from coverai.bot.helpers.ids import required_id
 from coverai.bot.helpers.users import ensure_user
 from coverai.bot.keyboards.main_menu import (
     MAIN_MENU_HELP,
@@ -115,7 +114,6 @@ __all__ = [
     "main_menu_keyboard",
     "period_label",
     "plan_label",
-    "required_id",
     "save_resume_from_text",
     "tone_from_callback",
     "tone_keyboard",

@@ -3,7 +3,6 @@ from coverai.bot.handlers.generation import handle_vacancy_url
 from coverai.bot.handlers.history import handle_history_command
 from coverai.bot.handlers.plan import handle_plan_command
 from coverai.bot.handlers.profile import handle_profile_command
-from coverai.bot.helpers.ids import required_id
 from coverai.bot.helpers.users import ensure_user
 from coverai.bot.keyboards.main_menu import (
     MAIN_MENU_HELP,
@@ -90,7 +89,7 @@ async def save_resume_from_text(
 
     try:
         result = await use_cases.save_resume_text(
-            user_id=required_id(user),
+            user=user,
             resume_text=message.text,
         )
     except ResumeTextTooShortError:

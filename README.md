@@ -42,12 +42,14 @@ API history / Telegram notification / Grafana metrics
 - `src/coverai/api` - FastAPI-приложение, схемы запросов/ответов,
   JWT-auth, профиль, генерации, история, баланс, mock-платежи, промокоды и
   простая пользовательская аналитика. Роуты, схемы, зависимости и mappers
-  разнесены по доменным пакетам.
+  разнесены по доменным пакетам; routes остаются тонким delivery-слоем и
+  вызывают use cases/read-model repos через DI.
 - `src/coverai/bot` - Telegram UI: команды, меню, загрузка резюме, выбор тона,
   история, баланс и постановка генераций в очередь. Handler-и, клавиатуры,
-  formatters, parsing и runtime-код разделены по ответственности.
+  formatters и parsing разделены по ответственности; runtime-сборка
+  зависимостей находится в `src/coverai/composition`.
 - `src/coverai/workers` - ARQ worker, который выполняет тяжелую генерацию вне
-  request/response цикла.
+  request/response цикла. `workers/tasks.py` оставлен тонкой arq-точкой входа.
 - `src/coverai/services` - бизнес-логика, разложенная по bounded contexts:
   `auth`, `billing`, `credits`, `generation`, `history`, `profile`,
   `resume_files`, `users`, `vacancy`, `prompts`, `metrics`.
@@ -55,12 +57,16 @@ API history / Telegram notification / Grafana metrics
   клиентов, репозиториев и метрик. Domain слой не зависит от FastAPI,
   SQLAlchemy, aiogram, Redis или ARQ.
 - `src/coverai/repos` - SQLAlchemy-репозитории поверх async sessions, с
-  отдельными repo-классами и mappers.
+  отдельными repo-классами и mappers. Read-model repos возвращают plain
+  DTO/dataclass, а не ORM-модели.
 - `src/coverai/clients` - внешние клиенты: hh.ru API/HTML fallback,
   OpenAI-compatible LLM API и Telegram sender.
 - `src/coverai/infra` - logging, Prometheus metrics, database session factory
   и инфраструктурные adapters.
 - `src/coverai/configs` - typed settings, читаемые из `.env`.
+- `src/coverai/composition` - composition roots для bot runtime и worker jobs:
+  здесь wiring связывает transports, session scope, infra adapters, repos и
+  services.
 - `src/coverai/di` - сборка зависимостей через Dishka.
 
 ## Стек
@@ -249,6 +255,7 @@ docker compose up --build
 ```bash
 uv run ruff check .
 uv run mypy src
+uv run lint-imports
 uv run pytest
 docker compose config
 ```

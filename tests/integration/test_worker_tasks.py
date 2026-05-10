@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 import pytest
 
+from coverai.composition import worker_generation
 from coverai.configs import Settings
 from coverai.domain.entities import User
 from coverai.domain.enums import Plan
@@ -16,18 +17,30 @@ async def test_worker_notifies_user_when_hh_client_error_is_final(
 ) -> None:
     sent_messages: list[tuple[int, str]] = []
 
-    monkeypatch.setattr(tasks, "session_factory_from_context", lambda _ctx: object())
-    monkeypatch.setattr(tasks, "session_scope", fake_session_scope)
-    monkeypatch.setattr(tasks, "HttpxHHClient", FakeClosableClient)
-    monkeypatch.setattr(tasks, "HttpxLLMClient", FakeClosableClient)
-    monkeypatch.setattr(tasks, "HttpxTelegramSender", fake_sender(sent_messages))
-    monkeypatch.setattr(tasks, "UserSqlAlchemyRepo", FakeUserRepo)
-    monkeypatch.setattr(tasks, "ResumeProfileSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "GenerationRequestSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "CoverLetterSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "VacancySqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "SubscriptionSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "CoverLetterService", FailingCoverLetterService)
+    monkeypatch.setattr(
+        worker_generation,
+        "session_factory_from_context",
+        lambda _ctx: object(),
+    )
+    monkeypatch.setattr(worker_generation, "session_scope", fake_session_scope)
+    monkeypatch.setattr(worker_generation, "HttpxHHClient", FakeClosableClient)
+    monkeypatch.setattr(worker_generation, "HttpxLLMClient", FakeClosableClient)
+    monkeypatch.setattr(
+        worker_generation,
+        "HttpxTelegramSender",
+        fake_sender(sent_messages),
+    )
+    monkeypatch.setattr(worker_generation, "UserSqlAlchemyRepo", FakeUserRepo)
+    monkeypatch.setattr(worker_generation, "ResumeProfileSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "GenerationRequestSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "CoverLetterSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "VacancySqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "SubscriptionSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(
+        worker_generation,
+        "CoverLetterService",
+        FailingCoverLetterService,
+    )
 
     with pytest.raises(HHClientError):
         await tasks.generate_cover_letter(
@@ -36,7 +49,7 @@ async def test_worker_notifies_user_when_hh_client_error_is_final(
             vacancy_url="https://hh.ru/vacancy/123",
         )
 
-    assert sent_messages == [(1001, tasks.HH_CLIENT_ERROR_MESSAGE)]
+    assert sent_messages == [(1001, worker_generation.HH_CLIENT_ERROR_MESSAGE)]
 
 
 async def test_worker_notifies_user_when_quota_error_is_final(
@@ -44,18 +57,30 @@ async def test_worker_notifies_user_when_quota_error_is_final(
 ) -> None:
     sent_messages: list[tuple[int, str]] = []
 
-    monkeypatch.setattr(tasks, "session_factory_from_context", lambda _ctx: object())
-    monkeypatch.setattr(tasks, "session_scope", fake_session_scope)
-    monkeypatch.setattr(tasks, "HttpxHHClient", FakeClosableClient)
-    monkeypatch.setattr(tasks, "HttpxLLMClient", FakeClosableClient)
-    monkeypatch.setattr(tasks, "HttpxTelegramSender", fake_sender(sent_messages))
-    monkeypatch.setattr(tasks, "UserSqlAlchemyRepo", FakeUserRepo)
-    monkeypatch.setattr(tasks, "ResumeProfileSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "GenerationRequestSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "CoverLetterSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "VacancySqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "SubscriptionSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "CoverLetterService", QuotaFailingCoverLetterService)
+    monkeypatch.setattr(
+        worker_generation,
+        "session_factory_from_context",
+        lambda _ctx: object(),
+    )
+    monkeypatch.setattr(worker_generation, "session_scope", fake_session_scope)
+    monkeypatch.setattr(worker_generation, "HttpxHHClient", FakeClosableClient)
+    monkeypatch.setattr(worker_generation, "HttpxLLMClient", FakeClosableClient)
+    monkeypatch.setattr(
+        worker_generation,
+        "HttpxTelegramSender",
+        fake_sender(sent_messages),
+    )
+    monkeypatch.setattr(worker_generation, "UserSqlAlchemyRepo", FakeUserRepo)
+    monkeypatch.setattr(worker_generation, "ResumeProfileSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "GenerationRequestSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "CoverLetterSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "VacancySqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "SubscriptionSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(
+        worker_generation,
+        "CoverLetterService",
+        QuotaFailingCoverLetterService,
+    )
 
     with pytest.raises(QuotaExceededError):
         await tasks.generate_cover_letter(
@@ -64,7 +89,7 @@ async def test_worker_notifies_user_when_quota_error_is_final(
             vacancy_url="https://hh.ru/vacancy/123",
         )
 
-    assert sent_messages == [(1001, tasks.QUOTA_EXCEEDED_MESSAGE)]
+    assert sent_messages == [(1001, worker_generation.QUOTA_EXCEEDED_MESSAGE)]
 
 
 async def test_worker_passes_llm_proxy_url(
@@ -77,18 +102,26 @@ async def test_worker_passes_llm_proxy_url(
             super().__init__(*args, **kwargs)
             llm_kwargs.update(kwargs)
 
-    monkeypatch.setattr(tasks, "session_factory_from_context", lambda _ctx: object())
-    monkeypatch.setattr(tasks, "session_scope", fake_session_scope)
-    monkeypatch.setattr(tasks, "HttpxHHClient", FakeClosableClient)
-    monkeypatch.setattr(tasks, "HttpxLLMClient", CapturingLLMClient)
-    monkeypatch.setattr(tasks, "HttpxTelegramSender", FakeClosableClient)
-    monkeypatch.setattr(tasks, "UserSqlAlchemyRepo", FakeUserRepo)
-    monkeypatch.setattr(tasks, "ResumeProfileSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "GenerationRequestSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "CoverLetterSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "VacancySqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "SubscriptionSqlAlchemyRepo", FakeRepo)
-    monkeypatch.setattr(tasks, "CoverLetterService", FailingCoverLetterService)
+    monkeypatch.setattr(
+        worker_generation,
+        "session_factory_from_context",
+        lambda _ctx: object(),
+    )
+    monkeypatch.setattr(worker_generation, "session_scope", fake_session_scope)
+    monkeypatch.setattr(worker_generation, "HttpxHHClient", FakeClosableClient)
+    monkeypatch.setattr(worker_generation, "HttpxLLMClient", CapturingLLMClient)
+    monkeypatch.setattr(worker_generation, "HttpxTelegramSender", FakeClosableClient)
+    monkeypatch.setattr(worker_generation, "UserSqlAlchemyRepo", FakeUserRepo)
+    monkeypatch.setattr(worker_generation, "ResumeProfileSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "GenerationRequestSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "CoverLetterSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "VacancySqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(worker_generation, "SubscriptionSqlAlchemyRepo", FakeRepo)
+    monkeypatch.setattr(
+        worker_generation,
+        "CoverLetterService",
+        FailingCoverLetterService,
+    )
 
     with pytest.raises(HHClientError):
         await tasks.generate_cover_letter(

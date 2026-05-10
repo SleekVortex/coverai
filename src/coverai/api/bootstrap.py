@@ -1,7 +1,7 @@
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from coverai.api.helpers.email import normalize_email
-from coverai.api.helpers.users import user_by_email
 from coverai.configs import Settings
 from coverai.domain.enums import Plan, UserRole
 from coverai.infra.db import models
@@ -15,7 +15,9 @@ async def ensure_admin_user(
     """Создает администратора при необходимости."""
     async with session_factory() as session, session.begin():
         email = normalize_email(settings.admin.email)
-        existing = await user_by_email(session, email)
+        existing = await session.scalar(
+            select(models.User).where(models.User.email == email),
+        )
         if existing is not None:
             return
 

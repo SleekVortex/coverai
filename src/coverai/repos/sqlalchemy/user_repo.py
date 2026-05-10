@@ -1,8 +1,12 @@
+from datetime import datetime
+
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from coverai.domain import entities as domain
 from coverai.domain.enums import Plan
+from coverai.domain.user_registration_repo import UserRegistrationConflictError
 from coverai.infra.db import models
 from coverai.repos.sqlalchemy.mappers import user_from_model
 
@@ -30,13 +34,23 @@ class UserSqlAlchemyRepo:
             language_code=user.language_code,
         )
         self._session.add(row)
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as error:
+            raise UserRegistrationConflictError from error
         await self._session.refresh(row)
         return user_from_model(row)
 
     async def get_by_id(self, user_id: int) -> domain.User | None:
         """Возвращает запись по id."""
         row = await self._session.get(models.User, user_id)
+        return user_from_model(row) if row else None
+
+    async def get_by_id_for_update(self, user_id: int) -> domain.User | None:
+        """Возвращает запись по id с блокировкой."""
+        row = await self._session.scalar(
+            select(models.User).where(models.User.id == user_id).with_for_update(),
+        )
         return user_from_model(row) if row else None
 
     async def get_by_email(self, email: str) -> domain.User | None:
@@ -69,6 +83,25 @@ class UserSqlAlchemyRepo:
             return None
 
         row.credits = credits
+        await self._session.flush()
+        await self._session.refresh(row)
+        return user_from_model(row)
+
+    async def update_pending_top_up_discount(
+        self,
+        user_id: int,
+        percent: int,
+        valid_until: datetime | None,
+        promo_code_id: int | None,
+    ) -> domain.User | None:
+        """Обновляет pending-скидку на пополнение."""
+        row = await self._session.get(models.User, user_id)
+        if row is None:
+            return None
+
+        row.pending_top_up_discount_percent = percent
+        row.pending_top_up_discount_valid_until = valid_until
+        row.pending_top_up_discount_promo_code_id = promo_code_id
         await self._session.flush()
         await self._session.refresh(row)
         return user_from_model(row)

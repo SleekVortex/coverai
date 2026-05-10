@@ -1,4 +1,3 @@
-from coverai.bot.helpers.ids import required_id
 from coverai.bot.helpers.users import ensure_user
 from coverai.bot.keyboards.main_menu import main_menu_keyboard
 from coverai.bot.messages import SUBSCRIBE_TEXT
@@ -19,7 +18,7 @@ async def handle_redeem_command(
         await message.answer("Введите промокод: /redeem WELCOME100")
         return
 
-    result = await use_cases.redeem_promo_code(required_id(user), parts[1])
+    result = await use_cases.redeem_promo_code(user, parts[1])
     await message.answer(result)
 
 
@@ -37,7 +36,7 @@ async def handle_topup_command(
         await message.answer("Введите количество кредитов: /topup 100")
         return
 
-    result = await use_cases.create_mock_top_up(required_id(user), int(parts[1]))
+    result = await use_cases.create_mock_top_up(user, int(parts[1]))
     await message.answer(result)
 
 

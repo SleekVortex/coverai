@@ -1,10 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
-from sqlalchemy.exc import IntegrityError
 
-from coverai.api.dependencies.services import RegistrationServiceDep
-from coverai.api.dependencies.session import SessionDep
+from coverai.api.dependencies.services import RegistrationServiceDep, UserServiceDep
 from coverai.api.helpers.email import is_valid_email, normalize_email
-from coverai.api.helpers.users import user_by_email
 from coverai.api.mappers.auth import token_for_user
 from coverai.api.schemas import LoginRequest, RegisterRequest, TokenResponse
 from coverai.services.auth import hash_password, verify_password
@@ -29,7 +26,7 @@ async def register(
             email=email,
             password_hash=hash_password(payload.password),
         )
-    except (IntegrityError, UserAlreadyExistsError) as error:
+    except UserAlreadyExistsError as error:
         raise HTTPException(
             status_code=409,
             detail="Email already registered",
@@ -41,11 +38,11 @@ async def register(
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(
     payload: LoginRequest,
-    session: SessionDep,
+    user_service: UserServiceDep,
     request: Request,
 ) -> TokenResponse:
     """Выдает токен доступа."""
-    user = await user_by_email(session, normalize_email(payload.email))
+    user = await user_service.get_by_email(normalize_email(payload.email))
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 

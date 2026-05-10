@@ -2,10 +2,10 @@ class PendingToneStore:
     def __init__(self) -> None:
         self._vacancy_urls: dict[int, str] = {}
 
-    def set(self, user_id: int, vacancy_url: str) -> None:
+    def set(self, telegram_id: int, vacancy_url: str) -> None:
         """Сохраняет значение."""
-        self._vacancy_urls[user_id] = vacancy_url
+        self._vacancy_urls[telegram_id] = vacancy_url
 
-    def pop(self, user_id: int) -> str | None:
+    def pop(self, telegram_id: int) -> str | None:
         """Извлекает и удаляет значение."""
-        return self._vacancy_urls.pop(user_id, None)
+        return self._vacancy_urls.pop(telegram_id, None)

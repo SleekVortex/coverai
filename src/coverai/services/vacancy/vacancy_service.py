@@ -3,6 +3,7 @@ from time import perf_counter
 
 from coverai.domain.entities import Employer, Vacancy
 from coverai.domain.hh import HHEmployerPayload, HHVacancyPayload
+from coverai.domain.ids import required_id
 from coverai.domain.ports import HHClient, MetricsRecorder, VacancyRepo
 from coverai.services.config import SERVICE_CONFIG
 from coverai.services.metrics import noop_metrics
@@ -82,7 +83,7 @@ class VacancyService:
             )
 
         updated = await self._vacancy_repo.update_employer_cache(
-            employer_id=_required_id(existing),
+            employer_id=required_id(existing),
             name=payload.name,
             url=payload.url,
             raw_payload=payload.raw_payload,
@@ -101,7 +102,7 @@ class VacancyService:
             return await self._vacancy_repo.create_vacancy(
                 Vacancy(
                     hh_id=payload.hh_id,
-                    employer_id=_required_id(employer),
+                    employer_id=required_id(employer),
                     title=payload.title,
                     url=payload.url,
                     raw_payload=payload.raw_payload,
@@ -110,20 +111,14 @@ class VacancyService:
             )
 
         updated = await self._vacancy_repo.update_vacancy_cache(
-            vacancy_id=_required_id(existing),
+            vacancy_id=required_id(existing),
             title=payload.title,
             url=payload.url,
             raw_payload=payload.raw_payload,
             cached_at=cached_at,
-            employer_id=_required_id(employer),
+            employer_id=required_id(employer),
         )
         return updated if updated is not None else existing
-
-
-def _required_id(entity: Employer | Vacancy) -> int:
-    if entity.id is None:
-        raise RuntimeError("entity id is not assigned")
-    return entity.id
 
 
 def _is_cache_fresh(cached_at: datetime | None, now: datetime) -> bool:

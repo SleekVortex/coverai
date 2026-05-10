@@ -5,6 +5,7 @@ from time import perf_counter
 from coverai.domain.entities import CoverLetter, GenerationRequest, ResumeProfile
 from coverai.domain.enums import GenerationStatus, Tone
 from coverai.domain.hh import HHClientError
+from coverai.domain.ids import required_id
 from coverai.domain.llm import LLMClientError
 from coverai.domain.ports import (
     CoverLetterRepo,
@@ -113,8 +114,8 @@ class CoverLetterService:
         return await self._generation_request_repo.create(
             GenerationRequest(
                 user_id=user_id,
-                profile_id=_required_id(profile),
-                vacancy_id=_required_id(vacancy_result.vacancy),
+                profile_id=required_id(profile),
+                vacancy_id=required_id(vacancy_result.vacancy),
                 status=GenerationStatus.PENDING,
                 tone=tone,
                 snapshot_profile_text=profile.resume_text,
@@ -161,11 +162,11 @@ class CoverLetterService:
 
         return await self._cover_letter_repo.create(
             CoverLetter(
-                generation_request_id=_required_id(request),
+                generation_request_id=required_id(request),
                 user_id=request.user_id,
                 profile_id=request.profile_id,
                 vacancy_id=request.vacancy_id,
-                employer_id=_required_id(vacancy_result.employer),
+                employer_id=required_id(vacancy_result.employer),
                 vacancy_title=vacancy_result.vacancy.title,
                 employer_name=vacancy_result.employer.name,
                 tone=tone,
@@ -182,7 +183,7 @@ class CoverLetterService:
         error: Exception,
     ) -> None:
         await self._generation_request_repo.update_status(
-            request_id=_required_id(request),
+            request_id=required_id(request),
             status=GenerationStatus.FAILED,
             error_message=str(error) or error.__class__.__name__,
             completed_at=datetime.now(UTC),
@@ -194,13 +195,6 @@ class CoverLetterService:
             status=GenerationStatus.SUCCEEDED,
             completed_at=datetime.now(UTC),
         )
-
-
-def _required_id(entity: object) -> int:
-    entity_id = getattr(entity, "id", None)
-    if not isinstance(entity_id, int):
-        raise RuntimeError("entity id is not assigned")
-    return entity_id
 
 
 def _snapshot_profile(

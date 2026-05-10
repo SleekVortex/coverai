@@ -43,6 +43,9 @@ class FakeUserRepo:
     async def get_by_id(self, user_id: int) -> User | None:
         return self.users.get(user_id)
 
+    async def get_by_id_for_update(self, user_id: int) -> User | None:
+        return await self.get_by_id(user_id)
+
     async def get_by_email(self, email: str) -> User | None:
         return next(
             (user for user in self.users.values() if user.email == email),
@@ -70,6 +73,27 @@ class FakeUserRepo:
             return None
 
         updated = replace(user, credits=credits, updated_at=now())
+        self.users[user_id] = updated
+        return updated
+
+    async def update_pending_top_up_discount(
+        self,
+        user_id: int,
+        percent: int,
+        valid_until: datetime | None,
+        promo_code_id: int | None,
+    ) -> User | None:
+        user = self.users.get(user_id)
+        if user is None:
+            return None
+
+        updated = replace(
+            user,
+            pending_top_up_discount_percent=percent,
+            pending_top_up_discount_valid_until=valid_until,
+            pending_top_up_discount_promo_code_id=promo_code_id,
+            updated_at=now(),
+        )
         self.users[user_id] = updated
         return updated
 
@@ -118,6 +142,19 @@ class FakeCreditLedgerRepo:
         )
         self.transactions[id_of(transaction)] = transaction
         return transaction
+
+    async def record_transaction(
+        self,
+        transaction: CreditTransaction,
+    ) -> CreditTransaction:
+        created = replace(
+            transaction,
+            id=self._next(),
+            created_at=transaction.created_at or now(),
+            updated_at=transaction.updated_at or now(),
+        )
+        self.transactions[id_of(created)] = created
+        return created
 
     def _next(self) -> int:
         value = self._next_id

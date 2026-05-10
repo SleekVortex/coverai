@@ -1,16 +1,10 @@
 from fastapi import APIRouter, Request
-from sqlalchemy import select
 
 from coverai.api.dependencies.auth import CurrentUserDep
-from coverai.api.dependencies.session import SessionDep
+from coverai.api.dependencies.services import BillingReadRepoDep, QuotaServiceDep
 from coverai.api.schemas import PlanUsageResponse, RecentCreditTransactionResponse
-from coverai.infra.db import models
-from coverai.repos.sqlalchemy import (
-    GenerationRequestSqlAlchemyRepo,
-    SubscriptionSqlAlchemyRepo,
-    UserSqlAlchemyRepo,
-)
-from coverai.services.billing import QuotaService
+from coverai.domain.ids import required_id
+from coverai.domain.read_models import CreditTransactionRead
 
 router = APIRouter(tags=["billing"])
 
@@ -18,59 +12,40 @@ router = APIRouter(tags=["billing"])
 @router.get("/billing/balance", response_model=PlanUsageResponse)
 async def balance(
     user: CurrentUserDep,
-    session: SessionDep,
+    quota_service: QuotaServiceDep,
+    billing_read_repo: BillingReadRepoDep,
     request: Request,
 ) -> PlanUsageResponse:
     """Возвращает баланс пользователя."""
-    usage = await QuotaService(
-        user_repo=UserSqlAlchemyRepo(session),
-        subscription_repo=SubscriptionSqlAlchemyRepo(session),
-        generation_request_repo=GenerationRequestSqlAlchemyRepo(session),
-    ).get_plan_usage(user.id)
-    rows = await _recent_transactions(session, user.id)
+    user_id = required_id(user)
+    usage = await quota_service.get_plan_usage_for_user(user)
+    summary = await billing_read_repo.billing_summary(user_id)
     return PlanUsageResponse(
         plan=usage.plan.value,
         used=usage.used,
         limit=usage.limit,
         remaining=usage.remaining,
         period=usage.period,
-        credits=user.credits,
+        credits=summary.credits,
         generation_cost_credits=request.app.state.settings.billing.prediction_cost_credits,
-        recent_transactions=[_transaction_payload(row) for row in rows],
+        recent_transactions=[
+            _transaction_payload(row) for row in summary.recent_transactions
+        ],
     )
 
 
 @router.get("/billing/transactions")
 async def transactions(
     user: CurrentUserDep,
-    session: SessionDep,
+    billing_read_repo: BillingReadRepoDep,
 ) -> list[RecentCreditTransactionResponse]:
     """Возвращает операции по кредитам."""
-    statement = (
-        select(models.CreditTransaction)
-        .where(models.CreditTransaction.user_id == user.id)
-        .order_by(models.CreditTransaction.created_at.desc())
-    )
-    rows = await session.scalars(statement)
+    rows = await billing_read_repo.transactions(required_id(user))
     return [_transaction_payload(row) for row in rows]
 
 
-async def _recent_transactions(
-    session: SessionDep,
-    user_id: int,
-    limit: int = 5,
-) -> list[models.CreditTransaction]:
-    statement = (
-        select(models.CreditTransaction)
-        .where(models.CreditTransaction.user_id == user_id)
-        .order_by(models.CreditTransaction.created_at.desc())
-        .limit(limit)
-    )
-    return list(await session.scalars(statement))
-
-
 def _transaction_payload(
-    row: models.CreditTransaction,
+    row: CreditTransactionRead,
 ) -> RecentCreditTransactionResponse:
     return RecentCreditTransactionResponse(
         id=row.id,

@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from coverai.domain import entities as domain
 from coverai.domain.enums import GenerationStatus, Plan, SubscriptionStatus, Tone
+from coverai.domain.user_registration_repo import UserRegistrationConflictError
 from coverai.infra.db import models
 from coverai.infra.db.base import Base
 from coverai.infra.db.session import create_session_factory
@@ -62,7 +63,7 @@ async def test_user_repo_crud(session: AsyncSession) -> None:
     assert updated is not None
     assert updated.plan == Plan.STANDARD
 
-    with pytest.raises(IntegrityError):
+    with pytest.raises(UserRegistrationConflictError):
         await repo.create(domain.User(telegram_id=100, plan=Plan.FREE))
 
 

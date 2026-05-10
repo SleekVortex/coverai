@@ -1,11 +1,23 @@
 from coverai.domain.entities import User
 from coverai.domain.enums import Plan
 from coverai.domain.ports import UserRepo
+from coverai.services.users.errors import UserNotFoundError
 
 
 class UserService:
     def __init__(self, user_repo: UserRepo) -> None:
         self._user_repo = user_repo
+
+    async def get_by_id(self, user_id: int) -> User:
+        """Возвращает пользователя по id."""
+        user = await self._user_repo.get_by_id(user_id)
+        if user is None:
+            raise UserNotFoundError
+        return user
+
+    async def get_by_email(self, email: str) -> User | None:
+        """Возвращает пользователя по email."""
+        return await self._user_repo.get_by_email(email)
 
     async def get_or_create_user(
         self,

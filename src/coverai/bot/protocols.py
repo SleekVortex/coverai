@@ -59,51 +59,51 @@ class BotUseCases(Protocol):
         ...
 
     async def save_resume_text(
-        self, user_id: int, resume_text: str
+        self, user: User, resume_text: str
     ) -> ProfileResult:
         """Сохраняет текст резюме."""
         ...
 
     async def save_resume_file(
         self,
-        user_id: int,
+        user: User,
         file_id: str,
         file_name: str,
     ) -> ProfileResult:
         """Сохраняет резюме из файла."""
         ...
 
-    async def get_profile(self, user_id: int) -> ResumeProfile:
+    async def get_profile(self, user: User) -> ResumeProfile:
         """Возвращает профиль."""
         ...
 
-    async def get_plan_usage(self, user_id: int) -> PlanUsage:
+    async def get_plan_usage(self, user: User) -> PlanUsage:
         """Возвращает использование тарифа."""
         ...
 
-    async def get_credit_balance(self, user_id: int) -> int:
+    async def get_credit_balance(self, user: User) -> int:
         """Возвращает баланс кредитов."""
         ...
 
-    async def redeem_promo_code(self, user_id: int, code: str) -> str:
+    async def redeem_promo_code(self, user: User, code: str) -> str:
         """Активирует промокод."""
         ...
 
-    async def create_mock_top_up(self, user_id: int, credits_amount: int) -> str:
+    async def create_mock_top_up(self, user: User, credits_amount: int) -> str:
         """Создает mock-пополнение."""
         ...
 
-    async def list_history(self, user_id: int) -> HistoryResult:
+    async def list_history(self, user: User) -> HistoryResult:
         """Возвращает историю писем."""
         ...
 
-    async def get_history_letter(self, user_id: int, letter_id: int) -> CoverLetter:
+    async def get_history_letter(self, user: User, letter_id: int) -> CoverLetter:
         """Возвращает письмо из истории."""
         ...
 
     async def enqueue_generation(
         self,
-        user_id: int,
+        user: User,
         vacancy_url: str,
         tone: Tone,
     ) -> None:

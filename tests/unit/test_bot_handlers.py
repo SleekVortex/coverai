@@ -109,9 +109,9 @@ class FakeBotUseCases:
         self.has_profile = has_profile
         self.save_error = save_error
         self.enqueue_error = enqueue_error
-        self.enqueued: list[tuple[int, str, Tone]] = []
-        self.saved_files: list[tuple[int, str, str]] = []
-        self.saved_texts: list[tuple[int, str]] = []
+        self.enqueued: list[tuple[User, str, Tone]] = []
+        self.saved_files: list[tuple[User, str, str]] = []
+        self.saved_texts: list[tuple[User, str]] = []
         self.history_error: Exception | None = None
         self.history_letters = [
             CoverLetter(
@@ -140,29 +140,29 @@ class FakeBotUseCases:
     ) -> User:
         return self.user
 
-    async def save_resume_text(self, user_id: int, resume_text: str) -> ProfileResult:
+    async def save_resume_text(self, user: User, resume_text: str) -> ProfileResult:
         if self.save_error is not None:
             raise self.save_error
 
-        self.saved_texts.append((user_id, resume_text))
+        self.saved_texts.append((user, resume_text))
         return ProfileResult(profile=self.profile, was_truncated=False)
 
     async def save_resume_file(
         self,
-        user_id: int,
+        user: User,
         file_id: str,
         file_name: str,
     ) -> ProfileResult:
-        self.saved_files.append((user_id, file_id, file_name))
+        self.saved_files.append((user, file_id, file_name))
         return ProfileResult(profile=self.profile, was_truncated=False)
 
-    async def get_profile(self, user_id: int) -> ResumeProfile:
+    async def get_profile(self, user: User) -> ResumeProfile:
         if not self.has_profile:
             raise ProfileNotFoundError
 
         return self.profile
 
-    async def get_plan_usage(self, user_id: int) -> PlanUsage:
+    async def get_plan_usage(self, user: User) -> PlanUsage:
         if self.user.plan == Plan.PRO:
             return PlanUsage(
                 plan=self.user.plan,
@@ -182,23 +182,23 @@ class FakeBotUseCases:
             subscription_expires_at=None,
         )
 
-    async def get_credit_balance(self, user_id: int) -> int:
+    async def get_credit_balance(self, user: User) -> int:
         return self.credits
 
-    async def redeem_promo_code(self, user_id: int, code: str) -> str:
+    async def redeem_promo_code(self, user: User, code: str) -> str:
         return f"redeemed {code.strip().upper()}"
 
-    async def create_mock_top_up(self, user_id: int, credits_amount: int) -> str:
+    async def create_mock_top_up(self, user: User, credits_amount: int) -> str:
         self.credits += credits_amount
         return f"Баланс пополнен на {credits_amount} кредитов."
 
-    async def list_history(self, user_id: int) -> HistoryResult:
+    async def list_history(self, user: User) -> HistoryResult:
         if self.history_error is not None:
             raise self.history_error
 
         return HistoryResult(letters=self.history_letters, cutoff=None)
 
-    async def get_history_letter(self, user_id: int, letter_id: int) -> CoverLetter:
+    async def get_history_letter(self, user: User, letter_id: int) -> CoverLetter:
         if self.history_error is not None:
             raise self.history_error
 
@@ -206,14 +206,14 @@ class FakeBotUseCases:
 
     async def enqueue_generation(
         self,
-        user_id: int,
+        user: User,
         vacancy_url: str,
         tone: Tone,
     ) -> None:
         if self.enqueue_error is not None:
             raise self.enqueue_error
 
-        self.enqueued.append((user_id, vacancy_url, tone))
+        self.enqueued.append((user, vacancy_url, tone))
 
 
 @pytest.mark.asyncio
@@ -284,7 +284,9 @@ async def test_free_user_vacancy_enqueues_formal_generation() -> None:
 
     await handle_text_message(message, use_cases, PendingToneStore())
 
-    assert use_cases.enqueued == [(1, "https://hh.ru/vacancy/123", Tone.FORMAL)]
+    assert use_cases.enqueued == [
+        (use_cases.user, "https://hh.ru/vacancy/123", Tone.FORMAL),
+    ]
     assert message.answers[-1].reply_markup is None
 
 
@@ -325,7 +327,9 @@ async def test_paid_user_selects_tone_before_generation(plan: Plan) -> None:
     callback = FakeCallback(data="tone:confident", message=message)
     await handle_tone_callback(callback, use_cases, store)
 
-    assert use_cases.enqueued == [(1, "https://hh.ru/vacancy/123", Tone.CONFIDENT)]
+    assert use_cases.enqueued == [
+        (use_cases.user, "https://hh.ru/vacancy/123", Tone.CONFIDENT),
+    ]
     assert callback.answers == ["✅ Генерация в очереди."]
 
 
@@ -336,7 +340,7 @@ async def test_paid_user_insufficient_credits_error_shows_alert() -> None:
         enqueue_error=InsufficientCreditsError(),
     )
     store = PendingToneStore()
-    store.set(1, "https://hh.ru/vacancy/123")
+    store.set(1001, "https://hh.ru/vacancy/123")
     message = FakeMessage(text="https://hh.ru/vacancy/123")
     callback = FakeCallback(data="tone:confident", message=message)
 
@@ -350,7 +354,7 @@ async def test_paid_user_insufficient_credits_error_shows_alert() -> None:
 async def test_paid_user_quota_error_shows_alert() -> None:
     use_cases = FakeBotUseCases(plan=Plan.STANDARD, enqueue_error=QuotaExceededError())
     store = PendingToneStore()
-    store.set(1, "https://hh.ru/vacancy/123")
+    store.set(1001, "https://hh.ru/vacancy/123")
     message = FakeMessage(text="https://hh.ru/vacancy/123")
     callback = FakeCallback(data="tone:confident", message=message)
 
@@ -390,7 +394,7 @@ async def test_document_handler_saves_resume_file() -> None:
 
     await handle_document(message, use_cases)
 
-    assert use_cases.saved_files == [(1, "file-1", "cv.pdf")]
+    assert use_cases.saved_files == [(use_cases.user, "file-1", "cv.pdf")]
     assert "✅ Профиль сохранен" in message.answers[-1].text
     assert "ссылку на вакансию" in message.answers[-1].text
 

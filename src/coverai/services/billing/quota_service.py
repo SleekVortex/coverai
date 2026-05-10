@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 
+from coverai.domain.entities import User
 from coverai.domain.enums import Plan
+from coverai.domain.ids import required_id
 from coverai.domain.ports import (
     GenerationRequestRepo,
     MetricsRecorder,
@@ -77,6 +79,14 @@ class QuotaService:
         self._metrics.set_quota_usage(usage.plan, usage.used, usage.limit)
         return usage
 
+    async def get_plan_usage_for_user(
+        self,
+        user: User,
+        now: datetime | None = None,
+    ) -> PlanUsage:
+        """Возвращает использование тарифа пользователя."""
+        return await self.get_plan_usage(required_id(user), now)
+
     async def ensure_can_generate(
         self,
         user_id: int,
@@ -88,6 +98,14 @@ class QuotaService:
             raise QuotaExceededError
 
         return usage
+
+    async def ensure_can_generate_for_user(
+        self,
+        user: User,
+        now: datetime | None = None,
+    ) -> PlanUsage:
+        """Проверяет доступность генерации для пользователя."""
+        return await self.ensure_can_generate(required_id(user), now)
 
     async def reserve_generation_request(
         self,

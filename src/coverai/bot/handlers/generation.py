@@ -1,4 +1,3 @@
-from coverai.bot.helpers.ids import required_id
 from coverai.bot.keyboards.main_menu import main_menu_keyboard
 from coverai.bot.keyboards.tone import tone_keyboard
 from coverai.bot.messages import (
@@ -23,20 +22,22 @@ async def handle_vacancy_url(
     vacancy_url: str,
 ) -> None:
     """Обрабатывает ссылку на вакансию."""
-    user_id = required_id(user)
     try:
-        await use_cases.get_profile(user_id)
+        await use_cases.get_profile(user)
     except ProfileNotFoundError:
         await message.answer(PROFILE_REQUIRED_TEXT, reply_markup=main_menu_keyboard())
         return
 
     if user.plan in {Plan.STANDARD, Plan.PRO}:
-        pending_tones.set(user_id, vacancy_url)
+        if message.from_user is None:
+            return
+
+        pending_tones.set(message.from_user.id, vacancy_url)
         await message.answer(TONE_SELECT_TEXT, reply_markup=tone_keyboard())
         return
 
     try:
-        await use_cases.enqueue_generation(user_id, vacancy_url, Tone.FORMAL)
+        await use_cases.enqueue_generation(user, vacancy_url, Tone.FORMAL)
     except InsufficientCreditsError:
         await message.answer(CREDITS_EXCEEDED_TEXT, reply_markup=main_menu_keyboard())
         return

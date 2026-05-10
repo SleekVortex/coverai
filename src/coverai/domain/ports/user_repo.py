@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
 from coverai.domain.entities import User
@@ -14,6 +15,10 @@ class UserRepo(Protocol):
         """Возвращает запись по id."""
         ...
 
+    async def get_by_id_for_update(self, user_id: int) -> User | None:
+        """Возвращает запись по id с блокировкой."""
+        ...
+
     async def get_by_telegram_id(self, telegram_id: int) -> User | None:
         """Возвращает пользователя по Telegram id."""
         ...
@@ -28,6 +33,16 @@ class UserRepo(Protocol):
 
     async def update_credits(self, user_id: int, credits: int) -> User | None:
         """Обновляет баланс кредитов."""
+        ...
+
+    async def update_pending_top_up_discount(
+        self,
+        user_id: int,
+        percent: int,
+        valid_until: datetime | None,
+        promo_code_id: int | None,
+    ) -> User | None:
+        """Обновляет pending-скидку на пополнение."""
         ...
 
     async def apply_credit_delta(self, user_id: int, amount: int) -> User | None:

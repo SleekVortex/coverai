@@ -1,4 +1,3 @@
-from coverai.bot.helpers.ids import required_id
 from coverai.bot.messages import GENERATION_ACCEPTED_TEXT
 from coverai.bot.parsing.callback import tone_from_callback
 from coverai.bot.protocols import BotUseCases, IncomingCallback
@@ -18,15 +17,14 @@ async def handle_tone_callback(
         first_name=callback.from_user.first_name,
         language_code=callback.from_user.language_code,
     )
-    user_id = required_id(user)
-    vacancy_url = pending_tones.pop(user_id)
+    vacancy_url = pending_tones.pop(callback.from_user.id)
     if vacancy_url is None:
         await callback.answer("🔗 Отправьте ссылку заново.", show_alert=True)
         return
 
     tone = tone_from_callback(callback.data)
     try:
-        await use_cases.enqueue_generation(user_id, vacancy_url, tone)
+        await use_cases.enqueue_generation(user, vacancy_url, tone)
     except InsufficientCreditsError:
         await callback.answer("⚠️ Недостаточно кредитов.", show_alert=True)
         return

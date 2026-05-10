@@ -1,4 +1,5 @@
-from coverai.domain.entities import ResumeProfile
+from coverai.domain.entities import ResumeProfile, User
+from coverai.domain.ids import required_id
 from coverai.domain.ports import ResumeProfileRepo
 from coverai.services.profile.errors import (
     ProfileAlreadyExistsError,
@@ -39,6 +40,19 @@ class ProfileService:
             was_truncated=normalized_text.was_truncated,
         )
 
+    async def create_profile_for_user(
+        self,
+        user: User,
+        title: str,
+        resume_text: str,
+    ) -> ProfileResult:
+        """Создает профиль резюме для пользователя."""
+        return await self.create_profile(
+            user_id=required_id(user),
+            title=title,
+            resume_text=resume_text,
+        )
+
     async def get_profile(self, user_id: int) -> ResumeProfile:
         """Возвращает профиль."""
         profile = await self._profile_repo.get_by_user_id(user_id)
@@ -46,6 +60,10 @@ class ProfileService:
             raise ProfileNotFoundError
 
         return profile
+
+    async def get_profile_for_user(self, user: User) -> ResumeProfile:
+        """Возвращает профиль пользователя."""
+        return await self.get_profile(required_id(user))
 
     async def update_profile(self, user_id: int, resume_text: str) -> ProfileResult:
         """Обновляет профиль резюме."""
@@ -65,6 +83,14 @@ class ProfileService:
             profile=updated,
             was_truncated=normalized_text.was_truncated,
         )
+
+    async def update_profile_for_user(
+        self,
+        user: User,
+        resume_text: str,
+    ) -> ProfileResult:
+        """Обновляет профиль резюме пользователя."""
+        return await self.update_profile(required_id(user), resume_text)
 
 
 def _required_profile_id(profile: ResumeProfile) -> int:

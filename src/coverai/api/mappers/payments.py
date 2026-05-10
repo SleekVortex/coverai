@@ -1,12 +1,14 @@
 from coverai.api.schemas import PaymentResponse
 from coverai.domain.enums import PaymentStatus
-from coverai.infra.db import models
+from coverai.domain.ids import required_id
+from coverai.domain.payments import PaymentIntent
 
 
-def payment_response(intent: models.PaymentIntent) -> PaymentResponse:
+def payment_response(intent: PaymentIntent) -> PaymentResponse:
     """Преобразует платеж в API response."""
+    payment_id = required_id(intent)
     return PaymentResponse(
-        id=intent.id,
+        id=payment_id,
         status=PaymentStatus(intent.status),
         credits_amount=intent.credits_amount,
         amount_rub=intent.amount_rub,
@@ -14,5 +16,5 @@ def payment_response(intent: models.PaymentIntent) -> PaymentResponse:
         external_id=intent.external_id,
         currency="RUB",
         user_id=intent.user_id,
-        payment_intent_id=intent.id,
+        payment_intent_id=payment_id,
     )

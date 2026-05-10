@@ -1,7 +1,7 @@
 from typing import Any
 
-from coverai.api.helpers.ids import required_id
 from coverai.api.schemas import CoverLetterResponse, GenerationStatusResponse
+from coverai.domain.ids import required_id
 
 
 def letter_response(letter: Any) -> CoverLetterResponse:

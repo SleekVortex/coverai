@@ -5,6 +5,13 @@ from coverai.domain.credit_transaction import CreditTransaction
 
 @runtime_checkable
 class CreditLedgerRepo(Protocol):
+    async def record_transaction(
+        self,
+        transaction: CreditTransaction,
+    ) -> CreditTransaction:
+        """Записывает транзакцию кредитов."""
+        ...
+
     async def grant_welcome_bonus(
         self,
         user_id: int,

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from coverai.domain.enums import Plan
+from coverai.domain.promocodes import PromoCode
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,3 +34,8 @@ class PlanUsage:
 
         return max(self.limit - self.used, 0)
 
+
+@dataclass(frozen=True, slots=True)
+class PromoRedemptionResult:
+    promo: PromoCode
+    message: str

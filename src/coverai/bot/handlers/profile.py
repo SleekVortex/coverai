@@ -1,5 +1,4 @@
 from coverai.bot.formatters.profile import format_profile
-from coverai.bot.helpers.ids import required_id
 from coverai.bot.helpers.users import ensure_user
 from coverai.bot.keyboards.main_menu import main_menu_keyboard
 from coverai.bot.messages import PROFILE_MISSING_TEXT
@@ -17,7 +16,7 @@ async def handle_profile_command(
         return
 
     try:
-        profile = await use_cases.get_profile(required_id(user))
+        profile = await use_cases.get_profile(user)
     except ProfileNotFoundError:
         await message.answer(PROFILE_MISSING_TEXT, reply_markup=main_menu_keyboard())
         return

@@ -125,8 +125,9 @@ Grafana -----------------------> Prometheus
 - `api` запускает `alembic upgrade head` перед стартом Uvicorn. Отдельного
   compose-сервиса migrations сейчас нет.
 - `worker` отвечает за async generation jobs.
-- `api` и `bot` напрямую читают/пишут PostgreSQL для пользователей, профилей,
-  биллинга, quota checks и резервирования `pending` generation.
+- `api`, `bot` и `worker` работают с PostgreSQL через request/job-scoped DI,
+  services и SQLAlchemy repositories. Delivery-слои не собирают repos и не
+  содержат SQL.
 - Вся система должна запускаться через Docker Compose.
 - Команда локального запуска: `docker compose up --build`.
 - Fresh clone с валидным `.env` не должен требовать установки Python,
@@ -134,18 +135,24 @@ Grafana -----------------------> Prometheus
 
 ## Слои
 
-Импорты должны идти только вниз.
+Импорты должны идти только вниз. Правила закреплены `import-linter`
+контрактами в `pyproject.toml`; CI запускает `uv run lint-imports`.
 
 | Слой | Ответственность |
 | --- | --- |
-| entrypoints | `api/` FastAPI routes; `bot/` handlers; `workers/` arq tasks |
-| services | Profile, generation, vacancy, billing, quota, history, analytics use cases |
+| entrypoints | `api/routes`, `bot/handlers`, `workers/tasks` - тонкие transport adapters |
+| composition | Bot runtime composition and worker job composition |
+| di | Dishka providers and container setup |
+| services | Profile, generation, vacancy, payments, promo, quota, history use cases |
+| read models | Query repos for admin/billing/analytics, returning DTO/dataclass only |
 | repos / clients | SQLAlchemy repositories, `HHClient`, `LLMClient`, Telegram sender |
 | infra | DB engine/session, Redis pool, config, logging, metrics, security helpers |
 | domain | Entities, enums, ports/protocols; stdlib-only business primitives |
 
 Entrypoints адаптируют транспортные детали в вызовы сервисов. Бизнес-правила
 живут в services, а не в FastAPI routes, aiogram handlers или arq task glue.
+Read-model repos могут использовать SQLAlchemy внутри, но наружу возвращают
+plain DTO/dataclass и не отдают ORM-сущности delivery-слою.
 
 ## Инфраструктурные сервисы
 

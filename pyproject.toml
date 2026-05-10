@@ -33,6 +33,7 @@ build-backend = "hatchling.build"
 dev = [
     "aiosqlite>=0.20,<1",
     "factory-boy>=3.3.3",
+    "import-linter>=2.11",
     "mypy>=1.10,<2",
     "pytest>=8.2,<9",
     "pytest-asyncio>=0.23,<2",
@@ -67,3 +68,60 @@ warn_unused_ignores = true
 asyncio_mode = "auto"
 pythonpath = ["src", "tests"]
 testpaths = ["tests"]
+
+[tool.importlinter]
+root_package = "coverai"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Domain does not depend on outer layers"
+type = "forbidden"
+source_modules = ["coverai.domain"]
+forbidden_modules = [
+    "coverai.bot",
+    "coverai.clients",
+    "coverai.composition",
+    "coverai.infra",
+    "coverai.repos",
+    "coverai.services",
+    "coverai.workers",
+]
+
+[[tool.importlinter.contracts]]
+name = "Services do not depend on infra or delivery"
+type = "forbidden"
+source_modules = ["coverai.services"]
+forbidden_modules = [
+    "coverai.bot",
+    "coverai.clients",
+    "coverai.composition",
+    "coverai.infra",
+    "coverai.repos",
+    "coverai.workers",
+]
+
+[[tool.importlinter.contracts]]
+name = "API routes and mappers stay thin"
+type = "forbidden"
+source_modules = ["coverai.api.routes", "coverai.api.mappers"]
+forbidden_modules = ["coverai.infra.db", "coverai.repos", "sqlalchemy"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Bot layer stays thin"
+type = "forbidden"
+source_modules = ["coverai.bot"]
+forbidden_modules = ["coverai.infra.db", "coverai.repos", "sqlalchemy"]
+allow_indirect_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Worker tasks stay thin"
+type = "forbidden"
+source_modules = ["coverai.workers.tasks"]
+forbidden_modules = [
+    "coverai.clients",
+    "coverai.infra.db",
+    "coverai.repos",
+    "sqlalchemy",
+]
+allow_indirect_imports = true

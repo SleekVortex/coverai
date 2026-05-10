@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
 from coverai.api.dependencies.auth import CurrentUserDep
-from coverai.api.dependencies.services import GenerationQueueServiceDep
-from coverai.api.dependencies.session import SessionDep
-from coverai.api.helpers.ids import required_id
+from coverai.api.dependencies.services import (
+    GenerationQueueServiceDep,
+    HistoryServiceDep,
+)
 from coverai.api.mappers.generations import (
     generation_status_response,
     letter_response,
@@ -14,7 +15,7 @@ from coverai.api.schemas import (
     GenerationCreateResponse,
     GenerationStatusResponse,
 )
-from coverai.repos.sqlalchemy import CoverLetterSqlAlchemyRepo, UserSqlAlchemyRepo
+from coverai.domain.ids import required_id
 from coverai.services.billing.errors import (
     InsufficientCreditsError,
     QuotaExceededError,
@@ -23,7 +24,6 @@ from coverai.services.generation.errors import (
     ForbiddenToneError,
     GenerationRequestNotFoundError,
 )
-from coverai.services.history import HistoryService
 from coverai.services.history.errors import HistoryAccessDeniedError
 from coverai.services.profile.errors import ProfileNotFoundError
 from coverai.services.vacancy.errors import (
@@ -47,8 +47,8 @@ async def create_generation(
 ) -> GenerationCreateResponse:
     """Ставит генерацию в очередь."""
     try:
-        generation_request = await generation_service.enqueue_generation(
-            user_id=user.id,
+        generation_request = await generation_service.enqueue_generation_for_user(
+            user=user,
             vacancy_url=payload.vacancy_url,
             tone=payload.tone,
         )
@@ -68,7 +68,7 @@ async def create_generation(
 
     return GenerationCreateResponse(
         queued=True,
-        user_id=user.id,
+        user_id=required_id(user),
         vacancy_url=payload.vacancy_url,
         tone=payload.tone,
         cost_credits=request.app.state.settings.billing.prediction_cost_credits,
@@ -80,14 +80,11 @@ async def create_generation(
 @router.get("/generations/history", response_model=list[CoverLetterResponse])
 async def generation_history(
     user: CurrentUserDep,
-    session: SessionDep,
+    history_service: HistoryServiceDep,
 ) -> list[CoverLetterResponse]:
     """Возвращает историю генераций."""
     try:
-        history = await HistoryService(
-            user_repo=UserSqlAlchemyRepo(session),
-            cover_letter_repo=CoverLetterSqlAlchemyRepo(session),
-        ).list_history(user.id)
+        history = await history_service.list_history_for_user(user)
     except HistoryAccessDeniedError as error:
         raise HTTPException(
             status_code=403,
@@ -109,7 +106,7 @@ async def generation_status(
     try:
         generation_request = await generation_service.get_request_for_user(
             request_id=id,
-            user_id=user.id,
+            user_id=required_id(user),
         )
     except GenerationRequestNotFoundError as error:
         raise HTTPException(

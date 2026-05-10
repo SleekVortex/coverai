@@ -1,7 +1,8 @@
 from datetime import UTC, datetime
 
-from coverai.domain.entities import CoverLetter
+from coverai.domain.entities import CoverLetter, User
 from coverai.domain.enums import Plan
+from coverai.domain.ids import required_id
 from coverai.domain.ports import CoverLetterRepo, UserRepo
 from coverai.services.history.errors import (
     CoverLetterNotFoundError,
@@ -39,6 +40,15 @@ class HistoryService:
         )
         return HistoryResult(letters=letters, cutoff=cutoff)
 
+    async def list_history_for_user(
+        self,
+        user: User,
+        now: datetime | None = None,
+        limit: int = DEFAULT_HISTORY_LIMIT,
+    ) -> HistoryResult:
+        """Возвращает историю писем пользователя."""
+        return await self.list_history(required_id(user), now, limit)
+
     async def get_letter(
         self,
         user_id: int,
@@ -57,6 +67,15 @@ class HistoryService:
             raise CoverLetterNotFoundError
 
         return letter
+
+    async def get_letter_for_user(
+        self,
+        user: User,
+        letter_id: int,
+        now: datetime | None = None,
+    ) -> CoverLetter:
+        """Возвращает письмо пользователя."""
+        return await self.get_letter(required_id(user), letter_id, now)
 
     async def _history_cutoff(
         self,

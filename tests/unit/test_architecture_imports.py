@@ -1,14 +1,27 @@
 import ast
+import inspect
 from pathlib import Path
+from typing import Any, get_args, get_origin, get_type_hints
+
+from coverai.repos.sqlalchemy import read_repos
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PACKAGE_ROOT = PROJECT_ROOT / "src" / "coverai"
+ORM_MODELS_MODULE = "coverai.infra.db.models"
 
 FORBIDDEN_LAYER_IMPORTS = {
-    "domain": {"services", "infra", "bot", "workers", "repos", "clients"},
-    "services": {"infra", "bot", "workers", "repos", "clients"},
-    "repos": {"bot", "workers"},
-    "clients": {"bot", "workers"},
+    "domain": {
+        "services",
+        "infra",
+        "bot",
+        "workers",
+        "repos",
+        "clients",
+        "composition",
+    },
+    "services": {"infra", "bot", "workers", "repos", "clients", "composition"},
+    "repos": {"bot", "workers", "composition"},
+    "clients": {"bot", "workers", "composition"},
 }
 
 
@@ -176,3 +189,38 @@ def test_fake_repositories_do_not_import_sqlalchemy() -> None:
                 )
 
     assert offenders == []
+
+
+def test_read_repositories_do_not_expose_orm_models() -> None:
+    offenders: list[str] = []
+
+    for _, repo_class in inspect.getmembers(read_repos, inspect.isclass):
+        if repo_class.__module__ != read_repos.__name__:
+            continue
+        if not repo_class.__name__.endswith("ReadSqlAlchemyRepo"):
+            continue
+
+        for method_name, method in inspect.getmembers(repo_class, inspect.isfunction):
+            if method_name.startswith("_"):
+                continue
+
+            type_hints = get_type_hints(method)
+            return_type = type_hints.get("return")
+            if _annotation_contains_orm_model(return_type):
+                offenders.append(f"{repo_class.__name__}.{method_name}")
+
+    assert offenders == []
+
+
+def _annotation_contains_orm_model(annotation: Any) -> bool:
+    if annotation is None:
+        return False
+
+    if inspect.isclass(annotation) and annotation.__module__ == ORM_MODELS_MODULE:
+        return True
+
+    origin = get_origin(annotation)
+    if inspect.isclass(origin) and origin.__module__ == ORM_MODELS_MODULE:
+        return True
+
+    return any(_annotation_contains_orm_model(arg) for arg in get_args(annotation))

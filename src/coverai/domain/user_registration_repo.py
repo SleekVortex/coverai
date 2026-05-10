@@ -3,6 +3,10 @@ from typing import Protocol, runtime_checkable
 from coverai.domain.entities import User
 
 
+class UserRegistrationConflictError(Exception):
+    pass
+
+
 @runtime_checkable
 class UserRegistrationRepo(Protocol):
     async def create(self, user: User) -> User:

@@ -2,7 +2,10 @@ from dataclasses import replace
 
 from coverai.domain.entities import User
 from coverai.domain.enums import Plan, UserRole
-from coverai.domain.user_registration_repo import UserRegistrationRepo
+from coverai.domain.user_registration_repo import (
+    UserRegistrationConflictError,
+    UserRegistrationRepo,
+)
 from coverai.services.credits import CreditLedgerService
 from coverai.services.users.errors import UserAlreadyExistsError
 
@@ -24,15 +27,18 @@ class UserRegistrationService:
         if existing is not None:
             raise UserAlreadyExistsError
 
-        user = await self._user_repo.create(
-            User(
-                telegram_id=None,
-                email=email,
-                password_hash=password_hash,
-                role=UserRole.USER,
-                plan=Plan.FREE,
-            ),
-        )
+        try:
+            user = await self._user_repo.create(
+                User(
+                    telegram_id=None,
+                    email=email,
+                    password_hash=password_hash,
+                    role=UserRole.USER,
+                    plan=Plan.FREE,
+                ),
+            )
+        except UserRegistrationConflictError as error:
+            raise UserAlreadyExistsError from error
         return await self._grant_welcome_bonus(user)
 
     async def get_or_create_telegram_user(
